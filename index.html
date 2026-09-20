@@ -200,11 +200,19 @@
     <div class="card">
       <h2>控え選手</h2>
       <ol id="benchList" class="order-list"></ol>
+      <div class="easy-row">
+        <button id="btnBenchToStart" class="secondary-btn">先頭から9人スタメンに</button>
+        <button id="btnStartToBench" class="secondary-btn">全員控えに戻す</button>
+      </div>
     </div>
   </section>
 
-  <!-- チーム管理: 登録 + 名簿 (マスタ整備用・試合と独立) -->
+  <!-- チーム管理: マイチーム + 登録 + 名簿 (マスタ整備用・試合と独立) -->
   <section id="tab-teams" class="tab-panel">
+    <div class="card myteam-card">
+      <h2>マイチーム</h2>
+      <div id="myTeamBox"></div>
+    </div>
     <div class="card">
       <h2>チーム登録</h2>
       <div class="player-add">
@@ -228,7 +236,16 @@
         <button id="btnAddRoster" class="primary-btn">追加</button>
       </div>
       <ol id="rosterList" class="order-list"></ol>
-      <p class="hint">背番号・学年・主守備を登録。出場画面の対戦カードでこのチームを選ぶと名簿が引き継がれます。</p>
+      <div class="bulk-box">
+        <label class="field">一括登録 <small>1行に「背番号 名前」(名前は省略可)</small>
+          <textarea id="bulkRoster" rows="4" placeholder="例:&#10;1 山田&#10;2&#10;10 佐藤"></textarea>
+        </label>
+        <div class="btn-grid">
+          <button id="btnBulkRoster" class="secondary-btn">一括追加</button>
+          <button id="btnNumOnly" class="secondary-btn">背番号1〜20を作成</button>
+        </div>
+      </div>
+      <p class="hint">相手チームなど名前が不明な場合は背番号だけ登録し、後から✎で名前を追記できます。名前タップでも改名できます。</p>
     </div>
   </section>
 

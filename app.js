@@ -11,6 +11,7 @@ const POS = { '1':'投','2':'捕','3':'一','4':'二','5':'三','6':'遊','7':'�
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 
 // ---------- チーム ----------
+const LS_MY = 'baseball-my-team';
 function loadTeams() {
   try { return JSON.parse(localStorage.getItem(LS_TEAMS) || '[]'); }
   catch { return []; }
@@ -18,6 +19,15 @@ function loadTeams() {
 function saveTeams(t) { localStorage.setItem(LS_TEAMS, JSON.stringify(t)); }
 let teams = loadTeams();
 let editingTeamId = teams[0]?.id || null;
+let myTeamId = localStorage.getItem(LS_MY) || '';
+function saveMyTeam(id) { myTeamId = id || ''; localStorage.setItem(LS_MY, myTeamId); }
+// 表示名: 名前未登録なら「#番号 未登録」
+function dn(p) {
+  if (!p) return '未登録';
+  const n = (p.name || '').trim();
+  if (n) return n;
+  return p.number ? `#${p.number} 未登録` : '未登録';
+}
 
 // ---------- 試合 ----------
 function defaultGame() {
@@ -93,15 +103,15 @@ function render() {
   $('#hdrCount').textContent = `B ${state.count.B} - S ${state.count.S} - O ${state.count.O}`;
   $('#hdrBases').textContent = state.bases.map(b=>b?'◆':'◇').join('');
   const cp = currentPitcher();
-  $('#hdrPitcher').textContent = `投: ${cp?cp.name:'-'}`;
+  $('#hdrPitcher').textContent = `投: ${cp?dn(cp):'-'}`;
   $('#cB').textContent = state.count.B; $('#cS').textContent = state.count.S; $('#cO').textContent = state.count.O;
   $$('#diamond .base').forEach(el => el.classList.toggle('on', !!state.bases[Number(el.dataset.base)]));
   $('#inningLabel').textContent = halfLabel();
   $('#easyInningLabel').textContent = halfLabel();
   $('#easyRuns').textContent = halfData().runs;
   const cb = currentBatter();
-  $('#currentBatter').textContent = cb ? `${(state.battingIndex[batTeam()]%Math.max(state.orders[batTeam()].length,1))+1}番 ${cb.name}` : '選手未登録';
-  $('#currentPitcher').textContent = cp ? cp.name : '未設定';
+  $('#currentBatter').textContent = cb ? `${(state.battingIndex[batTeam()]%Math.max(state.orders[batTeam()].length,1))+1}番 ${dn(cb)}` : '選手未登録';
+  $('#currentPitcher').textContent = cp ? dn(cp) : '未設定';
   $('#modeEasy').classList.toggle('active', state.mode==='easy');
   $('#modeDetail').classList.toggle('active', state.mode==='detail');
   $('#detailArea').classList.toggle('hidden', state.mode!=='detail');
@@ -155,7 +165,7 @@ function renderBat() {
   battingStats(state.statTeam).forEach(({player: p, ...s}) => {
     const avg = s.AB? (s.H/s.AB).toFixed(3).replace(/^0/,'') : '.---';
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${orderIndex(state.statTeam,p.playerId)}</td><td>${esc(p.name)}${p.number?`(${p.number})`:''}</td><td>${POS[p.position]||'-'}</td><td>${s.PA}</td><td>${s.AB}</td><td>${s.H}</td><td>${s.B2}</td><td>${s.B3}</td><td>${s.HR}</td><td>${s.RBI}</td><td>${s.R}</td><td>${s.SO}</td><td>${s.BB}</td><td>${s.SAC}</td><td>${s.SB}</td><td>${avg}</td>`;
+    tr.innerHTML = `<td>${orderIndex(state.statTeam,p.playerId)}</td><td>${esc(p.name||'未登録')}${p.number?`(${p.number})`:''}</td><td>${POS[p.position]||'-'}</td><td>${s.PA}</td><td>${s.AB}</td><td>${s.H}</td><td>${s.B2}</td><td>${s.B3}</td><td>${s.HR}</td><td>${s.RBI}</td><td>${s.R}</td><td>${s.SO}</td><td>${s.BB}</td><td>${s.SAC}</td><td>${s.SB}</td><td>${avg}</td>`;
     body.appendChild(tr);
   });
   if(!body.children.length) body.innerHTML = '<tr><td colspan="16">出場選手がいません</td></tr>';
@@ -207,7 +217,7 @@ function renderOrders() {
   state.orders[t].forEach((p,i)=>{
     const li = document.createElement('li');
     if(i===batIdx) li.classList.add('current');
-    li.innerHTML = `<strong>${i+1}</strong><span style="flex:1">${p.number?`#${p.number} `:''}${esc(p.name)} <small>[${POS[p.position]||'-'}]</small></span>
+    li.innerHTML = `<strong>${i+1}</strong><span style="flex:1">${(p.name&&p.number)?`#${p.number} `:''}${esc(dn(p))} <small>[${POS[p.position]||'-'}]</small></span>
       <button data-a="pos">守備</button><button data-a="bat">打</button><button data-a="up">▲</button><button data-a="down">▼</button><button data-a="del">✕</button>`;
     li.querySelectorAll('button').forEach(btn=>btn.onclick=()=>{
       const a=btn.dataset.a;
@@ -224,27 +234,42 @@ function renderOrders() {
   const bl = $('#benchList'); bl.innerHTML='';
   state.bench[t].forEach((p,i)=>{
     const li=document.createElement('li');
-    li.innerHTML=`<span style="flex:1">${p.number?`#${p.number} `:''}${esc(p.name)} <small>${esc(p.grade||'')} [${POS[p.position]||'-'}]</small></span><button>昇格</button>`;
+    li.innerHTML=`<span style="flex:1">${(p.name&&p.number)?`#${p.number} `:''}${esc(dn(p))} <small>${esc(p.grade||'')} [${POS[p.position]||'-'}]</small></span><button>昇格</button>`;
     li.querySelector('button').onclick=()=>{ if(state.orders[t].length<9){ state.orders[t].push(p); state.bench[t].splice(i,1); } else alert('スタメンは9人までです'); render(); };
     bl.appendChild(li);
   });
   if(!state.bench[t].length) bl.innerHTML='<li>控えがいません。</li>';
   const sel = $('#benchSelect'); sel.innerHTML='';
-  state.bench[t].forEach((p,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=`${p.number?`#${p.number} `:''}${p.name}`; sel.appendChild(o); });
+  state.bench[t].forEach((p,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=`${(p.name&&p.number)?`#${p.number} `:''}${dn(p)}`; sel.appendChild(o); });
 }
 function nextPos(cur){ const keys=Object.keys(POS); return keys[(keys.indexOf(cur)+1)%keys.length]; }
 
 // チーム一覧・名簿
+function renamePlayer(tm, p) {
+  const v = prompt('選手名を入力', p.name || '');
+  if (v === null) return;
+  p.name = v.trim();
+  saveTeams(teams); render();
+}
 function renderTeams() {
+  // マイチーム表示
+  const my = teams.find(t=>t.id===myTeamId);
+  $('#myTeamBox').innerHTML = my
+    ? `<div class="myteam-line"><span class="myteam-star">★</span><strong>${esc(my.name)}</strong><small>${my.players.length}名</small><button id="btnUnsetMy" class="mini-btn">解除</button></div>`
+    : `<p class="hint">未設定です。下の一覧から「★設定」を押してください。</p>`;
+  const un = $('#btnUnsetMy');
+  if (un) un.onclick = () => { saveMyTeam(''); render(); };
   const wrap = $('#teamList'); wrap.innerHTML='';
   teams.forEach(tm=>{
+    const isMy = tm.id===myTeamId;
     const div=document.createElement('div');
     div.className='team-item'+(tm.id===editingTeamId?' editing':'');
-    div.innerHTML=`<strong>${esc(tm.name)}</strong><small>${tm.players.length}名</small>
-      <button data-a="edit">名簿</button><button data-a="del">削除</button>`;
+    div.innerHTML=`${isMy?'<span class="myteam-star">★</span>':''}<strong>${esc(tm.name)}</strong><small>${tm.players.length}名</small>
+      <button data-a="my">${isMy?'★中':'★設定'}</button><button data-a="edit">名簿</button><button data-a="del">削除</button>`;
     div.querySelectorAll('button').forEach(b=>b.onclick=()=>{
       if(b.dataset.a==='edit'){ editingTeamId=tm.id; render(); }
-      if(b.dataset.a==='del'){ if(confirm(`${tm.name}を削除しますか？`)){ teams=teams.filter(x=>x.id!==tm.id); if(editingTeamId===tm.id) editingTeamId=teams[0]?.id||null; saveTeams(teams); render(); } }
+      if(b.dataset.a==='my'){ saveMyTeam(isMy?'':tm.id); render(); }
+      if(b.dataset.a==='del'){ if(confirm(`${tm.name}を削除しますか？`)){ teams=teams.filter(x=>x.id!==tm.id); if(editingTeamId===tm.id) editingTeamId=teams[0]?.id||null; if(myTeamId===tm.id) saveMyTeam(''); saveTeams(teams); render(); } }
     });
     div.onclick=(e)=>{ if(e.target.tagName!=='BUTTON'){ editingTeamId=tm.id; render(); } };
     wrap.appendChild(div);
@@ -255,11 +280,13 @@ function renderTeams() {
   const rl = $('#rosterList'); rl.innerHTML='';
   (tm?.players||[]).forEach((p,i)=>{
     const li=document.createElement('li');
-    li.innerHTML=`<strong>#${esc(p.number||'-')}</strong><span style="flex:1">${esc(p.name)} <small>${esc(p.grade||'')} [${POS[p.position]||'-'}]</small></span><button>✕</button>`;
-    li.querySelector('button').onclick=()=>{ tm.players.splice(i,1); saveTeams(teams); render(); };
+    li.innerHTML=`<strong>#${esc(p.number||'-')}</strong><span style="flex:1" class="rename" title="タップで改名">${esc(dn(p))} <small>${esc(p.grade||'')} [${POS[p.position]||'-'}]</small></span><button data-a="rn">✎</button><button data-a="del">✕</button>`;
+    li.querySelector('[data-a="rn"]').onclick=()=>renamePlayer(tm,p);
+    li.querySelector('.rename').onclick=()=>renamePlayer(tm,p);
+    li.querySelector('[data-a="del"]').onclick=()=>{ if(confirm(`${dn(p)}を名簿から外しますか？`)){ tm.players.splice(i,1); saveTeams(teams); render(); } };
     rl.appendChild(li);
   });
-  if(tm&&!tm.players.length) rl.innerHTML='<li>名簿が空です。下のフォームから追加してください。</li>';
+  if(tm&&!tm.players.length) rl.innerHTML='<li>名簿が空です。下のフォームか一括登録で追加してください。</li>';
 }
 
 function renderLog() {
@@ -323,7 +350,7 @@ function openPA(result){
   const bsel=$('#mBatter'); bsel.innerHTML='';
   state.orders[bt].forEach((p,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=`${i+1}番 ${p.number?`#${p.number} `:''}${p.name}`; if(i===state.battingIndex[bt]%state.orders[bt].length) o.selected=true; bsel.appendChild(o); });
   const psel=$('#mPitcher'); psel.innerHTML='';
-  state.orders[ft].concat(state.bench[ft]).forEach(p=>{ const o=document.createElement('option'); o.value=p.playerId; o.textContent=`${p.number?`#${p.number} `:''}${p.name}`; if(p.playerId===state.pitchers[ft]) o.selected=true; psel.appendChild(o); });
+  state.orders[ft].concat(state.bench[ft]).forEach(p=>{ const o=document.createElement('option'); o.value=p.playerId; o.textContent=`${(p.name&&p.number)?`#${p.number} `:''}${dn(p)}`; if(p.playerId===state.pitchers[ft]) o.selected=true; psel.appendChild(o); });
   $('#mRbi').textContent=pending.rbi; $('#mRun').textContent=pending.runs; $('#mPit').textContent=pending.pitches; $('#mSb').textContent=pending.sb;
   $('#mBatterScored').checked = result==='本塁打';
   $('#mEarned').checked = true;
@@ -356,7 +383,7 @@ function recordPA({batter,pitcher,result,rbi,runs,pitches,sb,batterScored,earned
   if(OUTS.includes(result)) outs = result==='併殺打'?2:1;
   if(SAC.includes(result)) outs=1;
   state.history.push({ id:uid(), type:'pa', inning, half, batting:batTeam(), fielding:fldTeam(),
-    batterId:batter.playerId||'', batter:batter.name||'', pitcherId:pitcher.playerId||'', pitcher:pitcher.name||'',
+    batterId:batter.playerId||'', batter:dn(batter), pitcherId:pitcher.playerId||'', pitcher:dn(pitcher),
     result, rbi, runs, pitches, sb, batterScored, earned, memo, outs, ts:new Date().toISOString() });
   if(outs){ state.count.O+=outs; state.count.B=0; state.count.S=0; if(state.count.O>=3){ changeHalf(true); return; } }
   else { state.count.B=0; state.count.S=0; }
@@ -388,8 +415,8 @@ $('#btnSub').onclick=()=>{
 function fillSub(){
   const t=$('#sTeam').value;
   const all=state.orders[t].concat(state.bench[t]);
-  $('#sOut').innerHTML=state.orders[t].map((p,i)=>`<option value="${i}">${i+1}番 ${p.number?`#${p.number} `:''}${esc(p.name)}</option>`).join('');
-  $('#sIn').innerHTML=state.bench[t].map((p,i)=>`<option value="${i}">${p.number?`#${p.number} `:''}${esc(p.name)}</option>`).join('')||'<option value="">控えなし</option>';
+  $('#sOut').innerHTML=state.orders[t].map((p,i)=>`<option value="${i}">${i+1}番 ${(p.name&&p.number)?`#${p.number} `:''}${esc(dn(p))}</option>`).join('');
+  $('#sIn').innerHTML=state.bench[t].map((p,i)=>`<option value="${i}">${(p.name&&p.number)?`#${p.number} `:''}${esc(dn(p))}</option>`).join('')||'<option value="">控えなし</option>';
   void all;
 }
 $('#sTeam').onchange=fillSub;
@@ -412,8 +439,8 @@ $('#sOk').onclick=()=>{
 // ---------- 走塁 ----------
 $('#btnSteal').onclick=()=>{
   const bt=batTeam(), ft=fldTeam();
-  $('#rRunner').innerHTML=state.orders[bt].map((p,i)=>`<option value="${p.playerId}">${i+1}番 ${esc(p.name)}</option>`).join('');
-  $('#rPitcher').innerHTML=state.orders[ft].concat(state.bench[ft]).map(p=>`<option value="${p.playerId}" ${p.playerId===state.pitchers[ft]?'selected':''}>${esc(p.name)}</option>`).join('');
+  $('#rRunner').innerHTML=state.orders[bt].map((p,i)=>`<option value="${p.playerId}">${i+1}番 ${esc(dn(p))}</option>`).join('');
+  $('#rPitcher').innerHTML=state.orders[ft].concat(state.bench[ft]).map(p=>`<option value="${p.playerId}" ${p.playerId===state.pitchers[ft]?'selected':''}>${esc(dn(p))}</option>`).join('');
   $('#runModal').classList.remove('hidden');
 };
 $('#rCancel').onclick=()=>$('#runModal').classList.add('hidden');
@@ -427,8 +454,8 @@ $('#rOk').onclick=()=>{
   const runs = result.includes('得点')?1:0;
   if(runs) halfData().runs+=runs;
   let outs = result==='盗塁失敗'?1:0;
-  if(outs){ state.count.O+=outs; if(state.count.O>=3){ state.history.push({id:uid(),type:'steal',inning:state.current.inning,half:state.current.half,batting:bt,fielding:ft,batterId:pid,batter:runner.name,pitcherId:ptid,pitcher:pitcher.name,result,runs,pitches:0,ts:new Date().toISOString()}); changeHalf(true); $('#runModal').classList.add('hidden'); return; } }
-  state.history.push({id:uid(),type:'steal',inning:state.current.inning,half:state.current.half,batting:bt,fielding:ft,batterId:pid,batter:runner.name,pitcherId:ptid,pitcher:pitcher.name,result,runs,pitches:1,ts:new Date().toISOString()});
+  if(outs){ state.count.O+=outs; if(state.count.O>=3){ state.history.push({id:uid(),type:'steal',inning:state.current.inning,half:state.current.half,batting:bt,fielding:ft,batterId:pid,batter:dn(runner),pitcherId:ptid,pitcher:dn(pitcher),result,runs,pitches:0,ts:new Date().toISOString()}); changeHalf(true); $('#runModal').classList.add('hidden'); return; } }
+  state.history.push({id:uid(),type:'steal',inning:state.current.inning,half:state.current.half,batting:bt,fielding:ft,batterId:pid,batter:dn(runner),pitcherId:ptid,pitcher:dn(pitcher),result,runs,pitches:1,ts:new Date().toISOString()});
   $('#runModal').classList.add('hidden'); render();
 };
 
@@ -436,6 +463,18 @@ $('#rOk').onclick=()=>{
 $('#btnAddFromBench').onclick=()=>{
   const t=state.viewingTeam, i=Number($('#benchSelect').value);
   if(state.bench[t][i]&&state.orders[t].length<9){ state.orders[t].push(state.bench[t][i]); state.bench[t].splice(i,1); render(); }
+};
+$('#btnBenchToStart').onclick=()=>{
+  const t=state.viewingTeam;
+  while(state.orders[t].length<9 && state.bench[t].length){ state.orders[t].push(state.bench[t].shift()); }
+  render();
+};
+$('#btnStartToBench').onclick=()=>{
+  const t=state.viewingTeam;
+  if(!state.orders[t].length) return;
+  state.bench[t]=state.bench[t].concat(state.orders[t]);
+  state.orders[t]=[];
+  render();
 };
 
 // ---------- チーム登録 ----------
@@ -446,10 +485,39 @@ $('#btnAddTeam').onclick=()=>{
 };
 $('#btnAddRoster').onclick=()=>{
   const tm=teams.find(x=>x.id===editingTeamId); if(!tm){ alert('先にチームを選択してください'); return; }
-  const name=$('#pName').value.trim(); if(!name) return;
-  tm.players.push({id:uid(),number:$('#pNumber').value.trim(),name,grade:$('#pGrade').value,position:$('#pPos').value});
+  const num=$('#pNumber').value.trim(), name=$('#pName').value.trim();
+  if(!num && !name){ alert('背番号か氏名のどちらかは入力してください'); return; }
+  tm.players.push({id:uid(),number:num,name,grade:$('#pGrade').value,position:$('#pPos').value});
   tm.players.sort((a,b)=>Number(a.number||99)-Number(b.number||99));
   $('#pNumber').value=''; $('#pName').value=''; saveTeams(teams); render();
+};
+function sortRoster(tm){ tm.players.sort((a,b)=>Number(a.number||99)-Number(b.number||99)); }
+$('#btnBulkRoster').onclick=()=>{
+  const tm=teams.find(x=>x.id===editingTeamId); if(!tm){ alert('先にチームを選択してください'); return; }
+  const lines=$('#bulkRoster').value.split('\n');
+  let n=0;
+  lines.forEach(line=>{
+    const t=line.trim(); if(!t) return;
+    const m=t.match(/^(\d+)\s*(.*)$/);
+    if(m){ tm.players.push({id:uid(),number:m[1],name:(m[2]||'').trim(),grade:'',position:'-'}); n++; }
+    else { tm.players.push({id:uid(),number:'',name:t,grade:'',position:'-'}); n++; }
+  });
+  if(!n){ alert('追加できる行がありません'); return; }
+  sortRoster(tm); $('#bulkRoster').value=''; saveTeams(teams); render();
+  alert(`${n}人を追加しました`);
+};
+$('#btnNumOnly').onclick=()=>{
+  const tm=teams.find(x=>x.id===editingTeamId); if(!tm){ alert('先にチームを選択してください'); return; }
+  const have=new Set(tm.players.map(p=>p.number));
+  let n=0;
+  for(let i=1;i<=20;i++){
+    if(have.has(String(i))) continue;
+    tm.players.push({id:uid(),number:String(i),name:'',grade:'',position:'-'});
+    n++;
+  }
+  if(!n){ alert('1〜20は既に登録済みです'); return; }
+  sortRoster(tm); saveTeams(teams); render();
+  alert(`背番号のみ${n}人を作成しました。後から✎で名前を追記できます`);
 };
 
 // ---------- 対戦カード (チーム画面) ----------
@@ -528,7 +596,7 @@ $('#btnNewGame').onclick=()=>{
 
 // ---------- スタート画面 ----------
 function teamOptions(sel, val){
-  sel.innerHTML = teams.map(t=>`<option value="${t.id}" ${t.id===val?'selected':''}>${esc(t.name)}（${t.players.length}名）</option>`).join('')
+  sel.innerHTML = teams.map(t=>`<option value="${t.id}" ${t.id===val?'selected':''}>${t.id===myTeamId?'★':''}${esc(t.name)}（${t.players.length}名）</option>`).join('')
     + `<option value="__custom">＋ 直接入力</option>`;
 }
 function syncCustom(selId, inputId){
@@ -573,12 +641,19 @@ $('#fileImport').onchange=(e)=>{
   r.onload=()=>{ try{ const s=JSON.parse(r.result); if(!s.meta||!s.innings) throw 0; state={...defaultGame(),...s}; render(); alert('試合を読み込みました'); }catch{ alert('形式が正しくありません'); } };
   r.readAsText(f); e.target.value='';
 };
-$('#btnExportTeams').onclick=()=>download('teams.json',JSON.stringify(teams,null,2));
+$('#btnExportTeams').onclick=()=>download('teams.json',JSON.stringify({myTeamId,teams},null,2));
 $('#btnImportTeams').onclick=()=>$('#fileImportTeams').click();
 $('#fileImportTeams').onchange=(e)=>{
   const f=e.target.files[0]; if(!f) return;
   const r=new FileReader();
-  r.onload=()=>{ try{ const t=JSON.parse(r.result); if(!Array.isArray(t)) throw 0; teams=t; editingTeamId=teams[0]?.id||null; saveTeams(teams); render(); alert('チームを読み込みました'); }catch{ alert('形式が正しくありません'); } };
+  r.onload=()=>{ try{
+    const raw=JSON.parse(r.result);
+    const t=Array.isArray(raw)?raw:raw.teams; // 旧形式(配列)も受付
+    if(!Array.isArray(t)) throw 0;
+    teams=t; editingTeamId=teams[0]?.id||null;
+    if(!Array.isArray(raw) && raw.myTeamId && teams.some(x=>x.id===raw.myTeamId)) saveMyTeam(raw.myTeamId);
+    saveTeams(teams); render(); alert('チームを読み込みました');
+  }catch{ alert('形式が正しくありません'); } };
   r.readAsText(f); e.target.value='';
 };
 $('#btnExportCsv').onclick=()=>{
@@ -590,7 +665,7 @@ $('#btnExportCsv').onclick=()=>{
   csv+=`${state.meta.home},${Array.from({length:n},(_,i)=>state.innings[i].bottom.runs).join(',')},${totalRuns('home')},${he(0,'bottom')[0]},${he(0,'bottom')[1]}\n\n`;
   for(const t of ['away','home']){
     csv+=`【${teamName(t)} 打撃】打順,選手,背番号,守備,打席,打数,安,2B,3B,HR,打点,得点,三振,四死,犠,盗,打率\n`;
-    battingStats(t).forEach(({player:p,...s})=>{ const avg=s.AB?(s.H/s.AB).toFixed(3):''; csv+=`${orderIndex(t,p.playerId)},${p.name},${p.number||''},${p.position||''},${s.PA},${s.AB},${s.H},${s.B2},${s.B3},${s.HR},${s.RBI},${s.R},${s.SO},${s.BB},${s.SAC},${s.SB},${avg}\n`; });
+    battingStats(t).forEach(({player:p,...s})=>{ const avg=s.AB?(s.H/s.AB).toFixed(3):''; csv+=`${orderIndex(t,p.playerId)},${p.name||'未登録'},${p.number||''},${p.position||''},${s.PA},${s.AB},${s.H},${s.B2},${s.B3},${s.HR},${s.RBI},${s.R},${s.SO},${s.BB},${s.SAC},${s.SB},${avg}\n`; });
     csv+=`\n【${teamName(t)} 投手】投手,回,球数,被安,奪三,四死,失点,自責\n`;
     pitchingStats().filter(s=>s.team===t).forEach(s=>{ csv+=`${s.player.name},${fmtIP(s.outs)},${s.pitches},${s.H},${s.SO},${s.BB},${s.R},${s.ER}\n`; });
     csv+=`\n`;

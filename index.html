@@ -151,13 +151,17 @@
       </table></div>
       <div id="summary" style="margin-top:8px"></div>
     </div>
+    <div class="card">
+      <h2>試合記録 <small id="logCount"></small></h2>
+      <ol id="logList" class="log-list" reversed></ol>
+    </div>
   </section>
 
-  <!-- 選手 (試合用オーダー) -->
-  <section id="tab-players" class="tab-panel">
+  <!-- チーム: 出場 + 登録 + 名簿 -->
+  <section id="tab-teams" class="tab-panel">
     <div class="card">
       <h2>スタメン・打順 <small>試合に出場する9人</small></h2>
-      <div class="team-tabs">
+      <div class="team-tabs" id="lineupTabs">
         <button class="team-tab active" data-team="away">先攻</button>
         <button class="team-tab" data-team="home">後攻</button>
       </div>
@@ -172,10 +176,6 @@
       <h2>控え選手</h2>
       <ol id="benchList" class="order-list"></ol>
     </div>
-  </section>
-
-  <!-- チーム登録 -->
-  <section id="tab-teams" class="tab-panel">
     <div class="card">
       <h2>チーム登録</h2>
       <div class="player-add">
@@ -200,14 +200,6 @@
       </div>
       <ol id="rosterList" class="order-list"></ol>
       <p class="hint">背番号・学年・主守備を登録。試合設定でこのチームを選ぶと名簿が引き継がれます。</p>
-    </div>
-  </section>
-
-  <!-- 履歴 -->
-  <section id="tab-log" class="tab-panel">
-    <div class="card">
-      <h2>試合記録 <small id="logCount"></small></h2>
-      <ol id="logList" class="log-list" reversed></ol>
     </div>
   </section>
 
@@ -307,11 +299,10 @@
   <button id="btnUpdateApp" class="primary-btn">更新する</button>
   <button id="btnDismissUpdate" class="mini-btn">後で</button>
 </div>
-<nav class="tabbar six">  <button data-tab="tab-input" class="active">✏️<span>入力</span></button>
+<nav class="tabbar">
+  <button data-tab="tab-input" class="active">✏️<span>入力</span></button>
   <button data-tab="tab-board">📊<span>成績</span></button>
-  <button data-tab="tab-players">👥<span>出場</span></button>
   <button data-tab="tab-teams">🏫<span>チーム</span></button>
-  <button data-tab="tab-log">📝<span>履歴</span></button>
   <button data-tab="tab-settings">⚙️<span>設定</span></button>
 </nav>
 

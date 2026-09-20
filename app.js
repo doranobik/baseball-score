@@ -193,7 +193,7 @@ function renderPitch() {
 // 出場・控え
 function renderOrders() {
   const t = state.viewingTeam;
-  $$('#tab-players .team-tab').forEach(b=>b.classList.toggle('active', b.dataset.team===t));
+  $$('#lineupTabs .team-tab').forEach(b=>b.classList.toggle('active', b.dataset.team===t));
   const list = $('#orderList'); list.innerHTML='';
   const batIdx = t===batTeam() ? state.battingIndex[t]%Math.max(state.orders[t].length,1) : -1;
   state.orders[t].forEach((p,i)=>{
@@ -286,7 +286,7 @@ $$('.tabbar button').forEach(b=>b.onclick=()=>{
   b.classList.add('active'); document.getElementById(b.dataset.tab).classList.add('active');
 });
 $$('.stat-tab').forEach(b=>b.onclick=()=>{ state.statTeam=b.dataset.stat; render(); });
-$$('#tab-players .team-tab').forEach(b=>b.onclick=()=>{ state.viewingTeam=b.dataset.team; render(); });
+$$('#lineupTabs .team-tab').forEach(b=>b.onclick=()=>{ state.viewingTeam=b.dataset.team; render(); });
 $('#modeEasy').onclick=()=>{state.mode='easy';render();};
 $('#modeDetail').onclick=()=>{state.mode='detail';render();};
 $$('#diamond .base').forEach(el=>el.onclick=()=>{ state.bases[Number(el.dataset.base)]=!state.bases[Number(el.dataset.base)]; render(); });

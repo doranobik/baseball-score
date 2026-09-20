@@ -234,7 +234,10 @@
       <input type="file" id="fileImport" accept="application/json" hidden />
       <input type="file" id="fileImportTeams" accept="application/json" hidden />
       <p class="hint">試合とチーム名簿は別々に保存・共有できます。記録は端末に自動保存されます。</p>
-      <div class="danger-zone"><button id="btnReset" class="danger-btn">試合をリセット</button></div>
+      <div class="danger-zone">
+        <button id="btnNewGame" class="secondary-btn">🆕 新しい試合をはじめる</button>
+        <button id="btnReset" class="danger-btn">試合をリセット</button>
+      </div>
     </div>
   </section>
 </main>
@@ -291,6 +294,40 @@
       <button id="rCancel" class="secondary-btn">キャンセル</button>
       <button id="rOk" class="primary-btn">記録する</button>
     </div>
+  </div>
+</div>
+
+<!-- スタート画面 -->
+<div id="startOverlay" class="modal hidden">
+  <div class="modal-card start-card">
+    <div class="start-logo">⚾</div>
+    <h3>野球スコアブック</h3>
+    <div id="resumeArea">
+      <p class="hint" id="resumeInfo"></p>
+      <button id="btnResumeGame" class="primary-btn start-btn">▶ 記録を再開する</button>
+      <div class="start-divider"><span>または</span></div>
+    </div>
+    <h4>新しい試合をはじめる</h4>
+    <label class="field">先攻チーム
+      <select id="stAwayTeam"></select>
+      <input id="stAwayCustom" class="hidden" placeholder="先攻チーム名を入力" maxlength="30" />
+    </label>
+    <label class="field">後攻チーム
+      <select id="stHomeTeam"></select>
+      <input id="stHomeCustom" class="hidden" placeholder="後攻チーム名を入力" maxlength="30" />
+    </label>
+    <div class="field-row">
+      <label class="field">大会名<input id="stTournament" placeholder="練習試合など" /></label>
+      <label class="field">日付<input id="stDate" type="date" /></label>
+    </div>
+    <div class="field-row">
+      <label class="field">球場<input id="stPlace" placeholder="○○球場" /></label>
+      <label class="field">イニング数
+        <select id="stInnings"><option value="5">5</option><option value="7" selected>7</option><option value="9">9</option></select>
+      </label>
+    </div>
+    <button id="btnStartGame" class="primary-btn start-btn">試合開始（名簿を反映）</button>
+    <p class="hint">登録済みチームを選ぶと先頭9人がスタメンになります。未登録の場合は「直接入力」を選んでください。</p>
   </div>
 </div>
 

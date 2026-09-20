@@ -520,9 +520,9 @@ $('#btnReset').onclick=()=>{
   const meta=state.meta; state=defaultGame(); state.meta={...meta, inningsCount:9}; render();
 };
 $('#btnNewGame').onclick=()=>{
-  if(state.history.length && !confirm('記録中の試合があります。チーム入力画面に移動しますか？（今の記録は残ります）')) return;
+  if(state.history.length && !confirm('記録中の試合があります。出場画面に移動しますか？（今の記録は残ります）')) return;
   state.setupDismissed=true;
-  gotoTab('tab-teams');
+  gotoTab('tab-match');
   render();
 };
 
@@ -546,7 +546,7 @@ function renderStart(){
 $('#btnResumeGame').onclick=()=>{ state.status='live'; render(); };
 $('#btnGoSetup').onclick=()=>{
   state.setupDismissed=true;
-  gotoTab('tab-teams');
+  gotoTab('tab-match');
   render();
 };
 

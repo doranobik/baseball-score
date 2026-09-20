@@ -1,5 +1,5 @@
 /* 野球スコアブック Service Worker: アプリシェルをキャッシュしてオフライン対応 */
-const CACHE = 'baseball-score-v5';
+const CACHE = 'baseball-score-v6';
 const ASSETS = [
   './',
   './index.html',
@@ -33,19 +33,37 @@ self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
   if (url.origin !== location.origin) return; // 外部は触らない
+  // 画像はキャッシュ優先、それ以外(HTML/JS/CSS)はネットワーク優先。
+  // HTMLだけ新しくJSが古い、といった新旧混在を防ぐため。
+  if (url.pathname.includes('/icons/')) {
+    e.respondWith(
+      caches.match(e.request).then(
+        (hit) =>
+          hit ||
+          fetch(e.request).then((res) => {
+            if (res.ok) {
+              const copy = res.clone();
+              caches.open(CACHE).then((c) => c.put(e.request, copy));
+            }
+            return res;
+          })
+      )
+    );
+    return;
+  }
   e.respondWith(
-    caches.match(e.request, { ignoreSearch: true }).then((hit) => {
-      const net = fetch(e.request)
-        .then((res) => {
-          if (res.ok) {
-            const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(e.request, copy));
-          }
-          return res;
-        })
-        .catch(() => hit || caches.match('./index.html'));
-      // ナビゲーションはネットワーク優先、それ以外はキャッシュ優先
-      return e.request.mode === 'navigate' ? net.catch(() => hit || caches.match('./index.html')) : (hit || net);
-    })
+    fetch(e.request)
+      .then((res) => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(e.request, copy));
+        }
+        return res;
+      })
+      .catch(() =>
+        caches.match(e.request, { ignoreSearch: true }).then(
+          (hit) => hit || caches.match('./index.html')
+        )
+      )
   );
 });

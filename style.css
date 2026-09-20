@@ -246,7 +246,7 @@ tbody tr:last-child th, tbody tr:last-child td { border-bottom: 0; }
 /* ===== タブバー ===== */
 .tabbar {
   position: fixed; bottom: calc(10px + env(safe-area-inset-bottom)); left: 12px; right: 12px;
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;
   background: rgba(255, 255, 255, .92); backdrop-filter: blur(12px);
   border: 1px solid rgba(18, 41, 29, .09); border-radius: 22px;
   padding: 6px; z-index: 30; box-shadow: 0 12px 32px -8px rgba(11, 53, 36, .35);
@@ -267,8 +267,8 @@ tbody tr:last-child th, tbody tr:last-child td { border-bottom: 0; }
   #tab-input.active { grid-template-columns: 1fr 1fr; }
   #tab-input .inning-nav { grid-column: 1 / -1; }
   #tab-input .mode-card { grid-column: 1 / -1; }
-  #tab-board.active, #tab-teams.active { grid-template-columns: 1fr 1fr; }
-  #tab-board.active .card:first-child, #tab-teams.active .card:first-child { grid-column: 1 / -1; }
+  #tab-board.active, #tab-teams.active, #tab-match.active { grid-template-columns: 1fr 1fr; }
+  #tab-board.active .card:first-child, #tab-teams.active .card:first-child, #tab-match.active .card:first-child { grid-column: 1 / -1; }
   .layout { padding: 20px; }
   .res { font-size: 17px; min-height: 70px; }
 }

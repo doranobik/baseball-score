@@ -157,8 +157,33 @@
     </div>
   </section>
 
-  <!-- チーム: 出場 + 登録 + 名簿 -->
+  <!-- チーム: 対戦設定 + 出場 + 登録 + 名簿 -->
   <section id="tab-teams" class="tab-panel">
+    <div class="card">
+      <h2>対戦カード <small>9イニング制</small></h2>
+      <label class="field">先攻チーム
+        <select id="tmAwayTeam"></select>
+        <input id="tmAwayCustom" class="hidden" placeholder="先攻チーム名を入力" maxlength="30" />
+      </label>
+      <label class="field">後攻チーム
+        <select id="tmHomeTeam"></select>
+        <input id="tmHomeCustom" class="hidden" placeholder="後攻チーム名を入力" maxlength="30" />
+      </label>
+      <div class="field-row">
+        <label class="field">大会名<input id="tmTournament" placeholder="練習試合など" /></label>
+        <label class="field">日付<input id="tmDate" type="date" /></label>
+      </div>
+      <label class="field">球場<input id="tmPlace" placeholder="○○球場" /></label>
+      <label class="field">メモ<input id="tmMemo" placeholder="特記事項など" /></label>
+      <div class="btn-grid">
+        <button id="btnTmStart" class="primary-btn">試合開始</button>
+        <button id="btnTmApply" class="secondary-btn">設定のみ適用</button>
+      </div>
+      <div class="easy-row">
+        <button id="btnTmRoster" class="secondary-btn">名簿を反映（先頭9人がスタメン）</button>
+      </div>
+      <p class="hint">「試合開始」は記録をリセットして開始します。「設定のみ適用」は記録を残したまま対戦情報を更新します。</p>
+    </div>
     <div class="card">
       <h2>スタメン・打順 <small>試合に出場する9人</small></h2>
       <div class="team-tabs" id="lineupTabs">
@@ -205,22 +230,6 @@
 
   <!-- 設定 -->
   <section id="tab-settings" class="tab-panel">
-    <div class="card">
-      <h2>試合設定</h2>
-      <label class="field">先攻チーム<select id="setAwayTeam"></select></label>
-      <label class="field">後攻チーム<select id="setHomeTeam"></select></label>
-      <label class="field">大会名<input id="setTournament" placeholder="春季大会・練習試合など" /></label>
-      <label class="field">日付<input id="setDate" type="date" /></label>
-      <label class="field">球場<input id="setPlace" placeholder="○○球場" /></label>
-      <label class="field">イニング数
-        <select id="setInnings"><option value="5">5</option><option value="7" selected>7</option><option value="9">9</option></select>
-      </label>
-      <label class="field">メモ<input id="setMemo" /></label>
-      <div class="easy-row">
-        <button id="btnApplyMeta" class="primary-btn">設定を適用</button>
-        <button id="btnLoadRoster" class="secondary-btn">名簿を反映</button>
-      </div>
-    </div>
     <div class="card">
       <h2>保存・共有</h2>
       <div class="btn-grid">
@@ -307,27 +316,8 @@
       <button id="btnResumeGame" class="primary-btn start-btn">▶ 記録を再開する</button>
       <div class="start-divider"><span>または</span></div>
     </div>
-    <h4>新しい試合をはじめる</h4>
-    <label class="field">先攻チーム
-      <select id="stAwayTeam"></select>
-      <input id="stAwayCustom" class="hidden" placeholder="先攻チーム名を入力" maxlength="30" />
-    </label>
-    <label class="field">後攻チーム
-      <select id="stHomeTeam"></select>
-      <input id="stHomeCustom" class="hidden" placeholder="後攻チーム名を入力" maxlength="30" />
-    </label>
-    <div class="field-row">
-      <label class="field">大会名<input id="stTournament" placeholder="練習試合など" /></label>
-      <label class="field">日付<input id="stDate" type="date" /></label>
-    </div>
-    <div class="field-row">
-      <label class="field">球場<input id="stPlace" placeholder="○○球場" /></label>
-      <label class="field">イニング数
-        <select id="stInnings"><option value="5">5</option><option value="7" selected>7</option><option value="9">9</option></select>
-      </label>
-    </div>
-    <button id="btnStartGame" class="primary-btn start-btn">試合開始（名簿を反映）</button>
-    <p class="hint">登録済みチームを選ぶと先頭9人がスタメンになります。未登録の場合は「直接入力」を選んでください。</p>
+    <button id="btnGoSetup" class="primary-btn start-btn">🆕 新しい試合をはじめる</button>
+    <p class="hint">チーム入力画面で対戦カードを設定します (9イニング制)。</p>
   </div>
 </div>
 

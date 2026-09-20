@@ -1,5 +1,5 @@
 /* 野球スコアブック Service Worker: アプリシェルをキャッシュしてオフライン対応 */
-const CACHE = 'baseball-score-v4';
+const CACHE = 'baseball-score-v5';
 const ASSETS = [
   './',
   './index.html',

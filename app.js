@@ -22,7 +22,7 @@ let editingTeamId = teams[0]?.id || null;
 // ---------- 試合 ----------
 function defaultGame() {
   return {
-    meta: { awayTeamId:'', homeTeamId:'', away:'ビジター', home:'ホーム', tournament:'', date: new Date().toISOString().slice(0,10), place:'', inningsCount:7, memo:'' },
+    meta: { awayTeamId:'', homeTeamId:'', away:'ビジター', home:'ホーム', tournament:'', date: new Date().toISOString().slice(0,10), place:'', inningsCount: 9, memo:'' },
     innings: Array.from({length:9}, () => ({ top:{runs:0,hits:0,err:0}, bottom:{runs:0,hits:0,err:0} })),
     current: { inning:1, half:'top' },
     count: { B:0, S:0, O:0 },
@@ -32,7 +32,7 @@ function defaultGame() {
     pitchers: { away:'', home:'' }, // playerId
     battingIndex: { away:0, home:0 },
     history: [], // {id,type,inning,half,batting,fielding,batterId,batter,pitcherId,pitcher,result,rbi,runs,pitches,sb,earned,memo,outs,ts}
-    mode:'detail', viewingTeam:'away', statTeam:'away', status:'setup',
+    mode:'detail', viewingTeam:'away', statTeam:'away', status:'setup', setupDismissed:false,
   };
 }
 function loadGame() {
@@ -107,7 +107,7 @@ function render() {
   $('#detailArea').classList.toggle('hidden', state.mode!=='detail');
   $('#easyArea').classList.toggle('hidden', state.mode!=='easy');
   $('#modeHint').textContent = state.mode==='easy' ? 'かんたん: 得点の＋/−だけ。' : 'ランナー→結果ボタンの順でタップ。投手・交代・盗塁も記録可。3アウトで自動交代。';
-  renderBoard(); renderBat(); renderPitch(); renderOrders(); renderTeams(); renderLog(); renderSettings();
+  renderBoard(); renderBat(); renderPitch(); renderOrders(); renderTeams(); renderLog(); renderMatchSetup();
   renderStart();
   save();
 }
@@ -278,21 +278,23 @@ function renderLog() {
   if(!state.history.length) list.innerHTML='<li>まだ記録がありません。</li>';
 }
 
-function renderSettings() {
+function renderMatchSetup() {
   if(document.activeElement?.tagName==='INPUT'||document.activeElement?.tagName==='SELECT') return;
-  const mk=(sel,val)=>{ const el=$(sel); el.innerHTML='<option value="">-- 未選択 --</option>'+teams.map(t=>`<option value="${t.id}" ${t.id===val?'selected':''}>${esc(t.name)}</option>`).join(''); };
-  mk('#setAwayTeam',state.meta.awayTeamId); mk('#setHomeTeam',state.meta.homeTeamId);
-  $('#setTournament').value=state.meta.tournament||'';
-  $('#setDate').value=state.meta.date; $('#setPlace').value=state.meta.place;
-  $('#setInnings').value=String(state.meta.inningsCount); $('#setMemo').value=state.meta.memo;
+  teamOptions($('#tmAwayTeam'), state.meta.awayTeamId);
+  teamOptions($('#tmHomeTeam'), state.meta.homeTeamId);
+  syncCustom('#tmAwayTeam','#tmAwayCustom'); syncCustom('#tmHomeTeam','#tmHomeCustom');
+  $('#tmTournament').value=state.meta.tournament||'';
+  $('#tmDate').value=state.meta.date||new Date().toISOString().slice(0,10);
+  $('#tmPlace').value=state.meta.place||'';
+  $('#tmMemo').value=state.meta.memo||'';
 }
 
 // ---------- タブ ----------
-$$('.tabbar button').forEach(b=>b.onclick=()=>{
-  $$('.tabbar button').forEach(x=>x.classList.remove('active'));
-  $$('.tab-panel').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active'); document.getElementById(b.dataset.tab).classList.add('active');
-});
+function gotoTab(tabId){
+  $$('.tabbar button').forEach(x=>x.classList.toggle('active', x.dataset.tab===tabId));
+  $$('.tab-panel').forEach(x=>x.classList.toggle('active', x.id===tabId));
+}
+$$('.tabbar button').forEach(b=>b.onclick=()=>gotoTab(b.dataset.tab));
 $$('.stat-tab').forEach(b=>b.onclick=()=>{ state.statTeam=b.dataset.stat; render(); });
 $$('#lineupTabs .team-tab').forEach(b=>b.onclick=()=>{ state.viewingTeam=b.dataset.team; render(); });
 $('#modeEasy').onclick=()=>{state.mode='easy';render();};
@@ -450,15 +452,50 @@ $('#btnAddRoster').onclick=()=>{
   $('#pNumber').value=''; $('#pName').value=''; saveTeams(teams); render();
 };
 
-// ---------- 設定 ----------
-$('#btnApplyMeta').onclick=()=>{
-  const a=teams.find(t=>t.id===$('#setAwayTeam').value), h=teams.find(t=>t.id===$('#setHomeTeam').value);
-  state.meta.awayTeamId=$('#setAwayTeam').value; state.meta.homeTeamId=$('#setHomeTeam').value;
-  if(a) state.meta.away=a.name; if(h) state.meta.home=h.name;
-  state.meta.tournament=$('#setTournament').value.trim();
-  state.meta.date=$('#setDate').value; state.meta.place=$('#setPlace').value.trim();
-  state.meta.inningsCount=Number($('#setInnings').value); state.meta.memo=$('#setMemo').value.trim();
-  render(); alert('設定を適用しました');
+// ---------- 対戦カード (チーム画面) ----------
+function resolveTeam(selId,inputId,def){
+  const v=$(selId).value;
+  if(v==='__custom'){ const n=$(inputId).value.trim(); return {id:'',name:n||def}; }
+  const t=teams.find(x=>x.id===v); return {id:v,name:t?t.name:def};
+}
+function readMatchForm(){
+  const a=resolveTeam('#tmAwayTeam','#tmAwayCustom','先攻チーム');
+  const h=resolveTeam('#tmHomeTeam','#tmHomeCustom','後攻チーム');
+  return { a, h,
+    tournament:$('#tmTournament').value.trim(),
+    date:$('#tmDate').value||new Date().toISOString().slice(0,10),
+    place:$('#tmPlace').value.trim(), memo:$('#tmMemo').value.trim() };
+}
+function applyMatchForm(){
+  const f=readMatchForm();
+  if(!f.a.name||!f.h.name){ alert('両チームの名前を入力してください'); return null; }
+  state.meta.awayTeamId=f.a.id; state.meta.homeTeamId=f.h.id;
+  state.meta.away=f.a.name; state.meta.home=f.h.name;
+  state.meta.tournament=f.tournament; state.meta.date=f.date;
+  state.meta.place=f.place; state.meta.memo=f.memo;
+  state.meta.inningsCount=9;
+  return f;
+}
+$('#btnTmApply').onclick=()=>{
+  if(!applyMatchForm()) return;
+  render(); alert('対戦情報を適用しました');
+};
+$('#btnTmStart').onclick=()=>{
+  if(state.history.length && !confirm('今の記録を消して新しい試合をはじめますか？（必要なら先にJSON書出してください）')) return;
+  const meta=state.meta;
+  const g=defaultGame();
+  g.meta={...meta, inningsCount:9};
+  state=g;
+  const f=readMatchForm();
+  state.meta.awayTeamId=f.a.id; state.meta.homeTeamId=f.h.id;
+  state.meta.away=f.a.name; state.meta.home=f.h.name;
+  state.meta.tournament=f.tournament; state.meta.date=f.date;
+  state.meta.place=f.place; state.meta.memo=f.memo;
+  if(f.a.id) applyRoster(f.a.id,'away');
+  if(f.h.id) applyRoster(f.h.id,'home');
+  state.status='live'; state.setupDismissed=false;
+  gotoTab('tab-input');
+  render();
 };
 function pullRoster(tid){
   const tm=teams.find(t=>t.id===tid); if(!tm) return null;
@@ -473,18 +510,20 @@ function applyRoster(tid, side){
   const p=r.nine.find(x=>x.position==='1'); if(p) state.pitchers[side]=p.playerId;
   return true;
 }
-$('#btnLoadRoster').onclick=()=>{
+$('#btnTmRoster').onclick=()=>{
   const a=applyRoster(state.meta.awayTeamId,'away'), h=applyRoster(state.meta.homeTeamId,'home');
-  if(!a&&!h){ alert('先にチームを選択して「設定を適用」してください'); return; }
+  if(!a&&!h){ alert('先に対戦カードでチームを選んで「設定のみ適用」してください'); return; }
   render(); alert('名簿を反映しました（先頭9人がスタメン）');
 };
 $('#btnReset').onclick=()=>{
   if(!confirm('試合データをリセットしますか？（履歴も消えます）')) return;
-  const meta=state.meta; state=defaultGame(); state.meta=meta; render();
+  const meta=state.meta; state=defaultGame(); state.meta={...meta, inningsCount:9}; render();
 };
 $('#btnNewGame').onclick=()=>{
-  if(state.history.length && !confirm('記録中の試合があります。新しい試合をはじめますか？（今の記録は消えます。必要なら先にJSON書出してください）')) return;
-  const meta=state.meta; state=defaultGame(); state.meta=meta; render();
+  if(state.history.length && !confirm('記録中の試合があります。チーム入力画面に移動しますか？（今の記録は残ります）')) return;
+  state.setupDismissed=true;
+  gotoTab('tab-teams');
+  render();
 };
 
 // ---------- スタート画面 ----------
@@ -497,40 +536,17 @@ function syncCustom(selId, inputId){
 }
 function renderStart(){
   const ov=$('#startOverlay');
-  if(state.status!=='setup'){ ov.classList.add('hidden'); return; }
+  if(state.status!=='setup' || state.setupDismissed){ ov.classList.add('hidden'); return; }
   const hasData = state.history.length>0 || state.innings.some(i=>i.top.runs>0||i.bottom.runs>0);
   $('#resumeArea').classList.toggle('hidden', !hasData);
   if(hasData) $('#resumeInfo').textContent=`記録中の試合: ${state.meta.away} vs ${state.meta.home}（${halfLabel()}・${state.history.length}件）`;
-  if(document.activeElement?.tagName==='INPUT'||document.activeElement?.tagName==='SELECT') { ov.classList.remove('hidden'); return; }
-  teamOptions($('#stAwayTeam'), state.meta.awayTeamId);
-  teamOptions($('#stHomeTeam'), state.meta.homeTeamId);
-  syncCustom('#stAwayTeam','#stAwayCustom'); syncCustom('#stHomeTeam','#stHomeCustom');
-  $('#stTournament').value=state.meta.tournament||'';
-  $('#stDate').value=state.meta.date||new Date().toISOString().slice(0,10);
-  $('#stPlace').value=state.meta.place||'';
-  $('#stInnings').value=String(state.meta.inningsCount||7);
   ov.classList.remove('hidden');
 }
-['#stAwayTeam','#stHomeTeam'].forEach(id=>{ $(id).onchange=()=>syncCustom(id, id.replace('Team','Custom')); });
+['#tmAwayTeam','#tmHomeTeam'].forEach(id=>{ $(id).onchange=()=>syncCustom(id, id.replace('Team','Custom')); });
 $('#btnResumeGame').onclick=()=>{ state.status='live'; render(); };
-$('#btnStartGame').onclick=()=>{
-  const resolve=(selId,inputId,def)=>{
-    const v=$(selId).value;
-    if(v==='__custom'){ const n=$(inputId).value.trim(); return {id:'',name:n||def}; }
-    const t=teams.find(x=>x.id===v); return {id:v,name:t?t.name:def};
-  };
-  const a=resolve('#stAwayTeam','#stAwayCustom','先攻チーム');
-  const h=resolve('#stHomeTeam','#stHomeCustom','後攻チーム');
-  if(!a.name||!h.name){ alert('両チームの名前を入力してください'); return; }
-  if(state.history.length && !confirm('今の記録を消して新しい試合をはじめますか？')) return;
-  const g=defaultGame();
-  g.meta={ awayTeamId:a.id, homeTeamId:h.id, away:a.name, home:h.name,
-    tournament:$('#stTournament').value.trim(), date:$('#stDate').value||new Date().toISOString().slice(0,10),
-    place:$('#stPlace').value.trim(), inningsCount:Number($('#stInnings').value), memo:'' };
-  state=g;
-  if(a.id) applyRoster(a.id,'away');
-  if(h.id) applyRoster(h.id,'home');
-  state.status='live';
+$('#btnGoSetup').onclick=()=>{
+  state.setupDismissed=true;
+  gotoTab('tab-teams');
   render();
 };
 
